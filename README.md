@@ -3,10 +3,10 @@
 ## GNN basic
 * random walk based
   * node2vec, ...
-* MLP, GCN, GAT, GraphSAGE, ...
+* GCN, GAT, Geom-GCN
 
 ## Recommender system basic
-* MF, NMF, GMF, NGCF, LightGCN, ...
+* MF, Auto Encoder, NGCF, LightGCN, PinSAGE
 
 ## data
 * movielens
