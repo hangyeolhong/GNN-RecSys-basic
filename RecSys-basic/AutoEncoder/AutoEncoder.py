@@ -9,19 +9,21 @@ import torch.nn.functional as F
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, model_conf, num_users, num_items, device):
+    def __init__(self, data_name, num_users, num_items, hid_dim, device):
         super(AutoEncoder, self).__init__()
-        self.data_name = model_conf.data_name
+        self.data_name = data_name
         self.num_users = num_users
         self.num_items = num_items
         self.device = device
-        self.hidden_neuron = model_conf.hidden_neuron
-        self.lambda_value = model_conf.lambda_value
+        self.hid_dim = hid_dim
 
-        self.encoder = nn.Linear(self.num_items, self.hidden_neuron)
-        self.decoder = nn.Linear(self.hidden_neuron, self.num_items)
+        self.encoder = nn.Linear(self.num_items, self.hid_dim)
+        self.decoder = nn.Linear(self.hid_dim, self.num_items)
 
         self.to(self.device)
+
+    def l2_norm(self, w):
+        return torch.square(torch.sqrt(torch.sum(torch.square(w))))
 
     def forward(self, x):
         x = F.dropout(x, 0.5, training=self.training)
@@ -32,9 +34,9 @@ class AutoEncoder(nn.Module):
 
         return torch.sigmoid(dec)
 
-    def train_one_epoch(self, dataset, optimizer, batch_size, verbose):
+    def train(self, dataset, optimizer, batch_size, verbose):
         self.train()
-        # user, item, rating pairs
+
         train_matrix = dataset.train_matrix
         mask_train_matrix = dataset.org_train_matrix
 
@@ -58,7 +60,9 @@ class AutoEncoder(nn.Module):
             pre_rec_cost = torch.mul((batch_matrix - pred_matrix), batch_mask_matrix)
             rec_cost = self.l2_norm(pre_rec_cost)
             pre_reg_cost = self.l2_norm(self.encoder.weight) + self.l2_norm(self.decoder.weight)
-            reg_cost = self.lambda_value * 0.5 * pre_reg_cost
+
+            lambda_v = 0.01
+            reg_cost = lambda_v * 0.5 * pre_reg_cost
 
             batch_loss = rec_cost + reg_cost
 
@@ -70,6 +74,3 @@ class AutoEncoder(nn.Module):
             if verbose and b % 50 == 0:
                 print('(%3d / %3d) loss = %.4f' % (b, num_batches, batch_loss))
         return loss
-
-    def l2_norm(self, w):
-        return torch.square(torch.sqrt(torch.sum(torch.square(w))))
